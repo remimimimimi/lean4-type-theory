@@ -16,8 +16,7 @@
  (synopsis "Implementation of simple typed lambda calculus")
  (description "Implementation of simple typed lambda calculus")
  (depends
-  (ocaml (= 4.11.1))
-  (coq (= 8.14.0))
-  (coqhammer (= 1.3.2))
-  ; (coq-hammer (= 1.3.2))
-  (coq-hammer-tactics (= 1.3.2))))
+  (ocaml (>= 4.11.1))
+  (coq (>= 8.14.0))
+  (coq-hammer (>= 1.3.2))
+  (coq-hammer-tactics (>= 1.3.2))))
