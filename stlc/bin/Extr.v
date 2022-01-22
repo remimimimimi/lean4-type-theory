@@ -1,6 +1,7 @@
 Require Extraction.
-(* For proper string extraction*)
-From Coq Require Import extraction.ExtrOcamlNativeString.
+(* NOTE: For proper string extraction *)
+(* XXX: Not working for `dune build @check` for some reason *)
+(* From Coq Require Import extraction.ExtrOcamlNativeString. *)
 
 Require Import Theory.Stlc.
 
