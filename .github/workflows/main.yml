@@ -33,7 +33,7 @@ jobs:
           # "8.X", "latest", or "dev".
           coq_version: 8.14 # optional, default is latest
           # "minimal", "4.XX", or "4.XX-flambda", see https://github.com/coq-community/docker-coq/wiki#supported-tags
-          ocaml_version: 4.11.1
+          ocaml_version: 4.11.1+flambda
 
           # Customizable script to install the opam dependencies.
           install: |
