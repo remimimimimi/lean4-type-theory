@@ -25,17 +25,35 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
 
-      # Runs a single command using the runners shell
-      - name: Initial dependencies setup
-        run: |
-          sudo apt install opam
-          opam init # only for the first time
-          opam install ./stlc --deps-only
+      - name: Docker-Coq Action
+        uses: coq-community/docker-coq-action@v1.2.4
+        with:
+          # The path of the .opam file (or a directory), relative to the repo root.
+          opam_file: stlc/stlc.opam
+          # "8.X", "latest", or "dev".
+          coq_version: 8.14.1 # optional, default is latest
+          # "minimal", "4.XX", or "4.XX-flambda", see https://github.com/coq-community/docker-coq/wiki#supported-tags
+          ocaml_version: 4.11.2-flambda
 
-      # Runs a set of commands using the runners shell
-      - name: Build stlc
-        run: |
-          pushd stlc
-          opam install . --deps-only
-          dune build
-          popd
+          # Customizable script to install the opam dependencies.
+          install: |
+            opam pin add -n -y -k path $PACKAGE $WORKDIR
+            opam update -y
+            opam install -y -j 2 $PACKAGE --deps-only
+
+          script: |
+            opam install -y -v -j 2 $PACKAGE
+            opam list
+
+          # Customizable script run to uninstall the opam package(s).
+          uninstall: |
+            opam remove $PACKAGE
+
+          # The main script run in the container; may be overridden.
+          custom_script: |
+            {{install}}
+            {{after_install}}
+            {{before_script}}
+            {{script}}
+            {{after_script}}
+            {{uninstall}}
