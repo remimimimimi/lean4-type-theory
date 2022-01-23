@@ -1,7 +1,5 @@
 From Coq Require Import List.
 From Coq Require Import Program.Program.
-(* Import coq-hammer for future proofs*)
-From Hammer Require Import Hammer Tactics.
 
 Require Import String.
 Import ListNotations.
