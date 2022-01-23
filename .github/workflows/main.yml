@@ -26,7 +26,7 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: Docker-Coq Action
-      - uses: coq-community/docker-coq-action@v1.2.4
+        uses: coq-community/docker-coq-action@v1.2.4
         with:
           # The path of the .opam file (or a directory), relative to the repo root.
           opam_file: stlc/stlc.opam
