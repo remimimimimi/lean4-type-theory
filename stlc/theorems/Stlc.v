@@ -116,22 +116,24 @@ Example typeof_test3 : type_of (empty_context)
                                 (TmIf (TmTrue)
                                       (TmTrue)
                                       (TmFalse))
-                        = inr TyBool.
+                     = inr TyBool.
 Proof. reflexivity. Qed.
 
-Example typeof_test4 :type_of (empty_context)
-                              (TmAbs "f" TyBool (TmAbs "f'" TyBool TmTrue))
-                      = inr (TyArrow TyBool (TyArrow TyBool TyBool)).
+Example typeof_test4 : type_of (empty_context)
+                               (TmAbs "f" TyBool (TmAbs "f'" TyBool TmTrue))
+                     = inr (TyArrow TyBool (TyArrow TyBool TyBool)).
 Proof. reflexivity. Qed.
 
-Example typeof_test5 : type_of (empty_context) (TmApp (TmAbs "f" TyBool TmTrue) TmFalse)
-                        = inr TyBool.
+Example typeof_test5 : type_of (empty_context)
+                               (TmApp (TmAbs "f" TyBool TmTrue) TmFalse)
+                     = inr TyBool.
 Proof. reflexivity. Qed.
 
-Compute type_of (context_mk [binding_mk "f" (BindVar (TyArrow TyBool TyBool))]) (TmVar "f").
-Example typeof_test6 : type_of (context_mk [binding_mk "f" (BindVar (TyArrow TyBool TyBool))])
-                                (TmIf (TmTrue)
-                                      (TmApp (TmVar "f") TmTrue)
-                                      (TmFalse))%string
-                        = inr TyBool.
+Example typeof_test6 : type_of (context_mk
+                                [binding_mk "f"
+                                            (BindVar (TyArrow TyBool TyBool))])
+                               (TmIf (TmTrue)
+                                     (TmApp (TmVar "f") TmTrue)
+                                     (TmFalse))%string
+                     = inr TyBool.
 Proof. reflexivity. Qed.
