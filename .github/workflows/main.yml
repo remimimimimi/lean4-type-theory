@@ -31,9 +31,9 @@ jobs:
           # The path of the .opam file (or a directory), relative to the repo root.
           opam_file: stlc/stlc.opam
           # "8.X", "latest", or "dev".
-          coq_version: 8.14 # optional, default is latest
+          coq_version: 8.14.1 # optional, default is latest
           # "minimal", "4.XX", or "4.XX-flambda", see https://github.com/coq-community/docker-coq/wiki#supported-tags
-          ocaml_version: 4.11.1+flambda
+          ocaml_version: 4.11.2-flambda
 
           # Customizable script to install the opam dependencies.
           install: |
