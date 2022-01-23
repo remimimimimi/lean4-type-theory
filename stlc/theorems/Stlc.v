@@ -6,7 +6,6 @@ From Hammer Require Import Hammer Tactics.
 Require Import String.
 Import ListNotations.
 
-(* TODO: Implement well-typed errors *)
 Definition error := string.
 
 (* Define list function that searches through list and remove one matching element *)
@@ -41,15 +40,14 @@ Example type_eq_test4 : type_eq (TyArrow TyBool (TyArrow TyBool TyBool))
 Proof. reflexivity. Qed.
 
 Inductive term : Set :=
-   | TmTrue : term
-   | TmFalse : term
-   | TmIf : term -> term -> term -> term
-   | TmVar : string -> term
-   | TmAbs : string -> type -> term -> term
-   | TmApp : term -> term -> term.
+  | TmTrue : term
+  | TmFalse : term
+  | TmIf : term -> term -> term -> term
+  | TmVar : string -> term
+  | TmAbs : string -> type -> term -> term
+  | TmApp : term -> term -> term.
 
 Inductive bind_kind : Set :=
-  | BindName : bind_kind
   | BindVar : type -> bind_kind.
 
 Record binding : Set := binding_mk { bind_name : string ; kind : bind_kind }.
@@ -70,13 +68,12 @@ Definition get_binding (ctx : context) (name : string) : error + bind_kind :=
 Definition get_type (ctx : context) (name : string) : error + type :=
   match get_binding ctx name with
   | inr (BindVar tyT) => inr tyT
-  | inr _ => inl ("get_type: Wrong kind of binding for variable `" ++ name ++ "`")%string
   | inl e => inl e
   end.
 
 Fixpoint type_of (ctx : context) (t : term) : error + type :=
   match t with
-  | TmTrue
+  | TmTrue => inr TyBool
   | TmFalse => inr TyBool
   | TmIf t1 t2 t3 =>
     match (type_of ctx t1, type_of ctx t2, type_of ctx t3) with
@@ -138,20 +135,3 @@ Example typeof_test6 : type_of (context_mk [binding_mk "f" (BindVar (TyArrow TyB
                                       (TmFalse))%string
                         = inr TyBool.
 Proof. reflexivity. Qed.
-
-(* Theorem abs_type : forall (name : string) (ty : type) (tm : term) (ctx: context), *)
-(*                      type_of ctx (TmAbs name ty tm) *)
-(*                    = TyArrow ty (type_of (add_binding ctx name (BindVar ty)) tm). *)
-
-(* TODO: Split term to safe and unsafe for reduction *)
-(* Record well_typed_term : Set := mk_typed_term { tt_term : term ; tt_type : type }. *)
-
-(* Fixpoint reduce (ctx: context) (t : term) : error + term := *)
-(*   match t with *)
-(*   | TmTrue => inr TmTrue *)
-(*   | TmFalse => inr TmFalse *)
-(*   | TmIf t₁ t₂ t₃ => *)
-(*   | TmVar name => get_type ctx name *)
-(*   | TmAbs name tyT₁ t₂ => *)
-(*   | TmApp t₁ t₂ => *)
-(*   end. *)

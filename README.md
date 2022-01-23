@@ -10,8 +10,8 @@ Implementation of typecheckers (not only) for different lambda calculus type sys
 The only prerequisite is `opam`:
 
 ``` sh
-cd NAME_OF_TYPE_SYSTEM_PROJECT 
 opam init # for first usage
+cd NAME_OF_TYPE_SYSTEM_PROJECT 
 opam install . --deps-only
 dune build
 ```
