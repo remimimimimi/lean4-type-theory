@@ -266,7 +266,7 @@ Example typeof_test6 : type_of (context_mk
                                             (BindVar (TyArrow TyBool TyBool))])
                                (TmIf (TmTrue)
                                      (TmApp (TmVar "f") TmTrue)
-                                     (TmFalse))%string
+                                     (TmFalse))
                      = inr TyBool.
 Proof. reflexivity. Qed.
 
