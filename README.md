@@ -3,7 +3,8 @@ Implementation of typecheckers (not only) for different lambda calculus type sys
 
 ### Project structure
 
-- stlc (Simple typed lambda calculus)
+- Simple typed lambda calculus (stlc)
+- Polymorphic lambda calculus (systemf) 
 
 ## Build and run
 
