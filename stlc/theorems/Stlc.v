@@ -22,7 +22,8 @@ Inductive type : Set :=
 Fixpoint type_eq (a:type) (b:type) : bool :=
   match (a, b) with
   | (TyBool, TyBool) => true
-  | (TyArrow t11 t12, TyArrow t21 t22) => ((type_eq t11 t21) && (type_eq t12 t22))%bool
+  | (TyArrow t11 t12, TyArrow t21 t22) =>
+    ((type_eq t11 t21) && (type_eq t12 t22))%bool
   | (_, _) => false
   end.
 
@@ -35,8 +36,10 @@ Proof. reflexivity. Qed.
 Example type_eq_test3 : type_eq TyBool (TyArrow TyBool TyBool) = false.
 Proof. reflexivity. Qed.
 
-Example type_eq_test4 : type_eq (TyArrow TyBool (TyArrow TyBool TyBool))
-                                (TyArrow TyBool (TyArrow TyBool TyBool)) = true.
+Example type_eq_test4 :
+  type_eq (TyArrow TyBool (TyArrow TyBool TyBool))
+          (TyArrow TyBool (TyArrow TyBool TyBool))
+  = true.
 Proof. reflexivity. Qed.
 
 Inductive term : Set :=
@@ -56,14 +59,18 @@ Record context : Set := context_mk { bindings : list binding }.
 
 Definition empty_context := context_mk [].
 
-Definition add_binding (ctx : context) (name : string) (bind : bind_kind) : context :=
+Definition add_binding (ctx : context) (name : string) (bind : bind_kind) :=
   context_mk (binding_mk name bind :: ctx.(bindings)).
 
 Definition get_binding (ctx : context) (name : string) : error + bind_kind :=
-  match option_map (fun b => b.(kind)) (List.find (fun b => eqb b.(bind_name) name) ctx.(bindings)) with
+  match
+    option_map (fun b => b.(kind))
+               (List.find (fun b => eqb b.(bind_name) name) ctx.(bindings))
+  with
   | Some bk => inr bk
-  | None => inl ("get_binding: Wrong kind of binding for variable `" ++ name ++ "`")%string
-  end.
+  | None =>
+    inl ("get_binding: Wrong kind of binding for variable `" ++ name ++ "`")
+  end%string.
 
 Definition get_type (ctx : context) (name : string) : error + type :=
   match get_binding ctx name with
@@ -80,18 +87,18 @@ Fixpoint type_of (ctx : context) (t : term) : error + type :=
     | (inr ty1, inr ty2, inr ty3) =>
       if type_eq ty1 TyBool then
         if type_eq ty2 ty3 then inr ty2
-        else inl ("type_of: Arms of conditional have different types")%string
-      else inl ("type_of: Guard of conditional expression not a boolean")%string
+        else inl ("type_of: Arms of conditional have different types")
+      else inl ("type_of: Guard of conditional expression not a boolean")
     | (inl e, _, _)
     | (_, inl e, _)
     | (_, _, inl e) => inl e
     end
   | TmVar name => get_type ctx name
   | TmAbs name tyT1 t2 =>
-    let ctx' := add_binding ctx name (BindVar tyT1)
-    in match type_of ctx' t2 with
+    let ctx' := add_binding ctx name (BindVar tyT1) in
+    match type_of ctx' t2 with
     | inr tyT2 => inr (TyArrow tyT1 tyT2)
-    | _ => inl ("type_of: Cannot find type for term")%string
+    | _ => inl ("type_of: Cannot find type for term")
     end
   | TmApp t1 t2 =>
     match (type_of ctx t1, type_of ctx t2) with
@@ -99,12 +106,12 @@ Fixpoint type_of (ctx : context) (t : term) : error + type :=
       match ty1 with
       | TyArrow ty11 ty12 =>
         if type_eq ty2 ty11 then inr ty12
-        else inl ("type_of: Parameter type mismatch")%string
-      | _ => inl ("type_of: Arrow type expected")%string
+        else inl ("type_of: Parameter type mismatch")
+      | _ => inl ("type_of: Arrow type expected")
       end
-    | _ => inl ("type_of: Cannot find type for term")%string
+    | _ => inl ("type_of: Cannot find type for term")
     end
-  end.
+  end%string.
 
 Example typeof_test1 : type_of (empty_context) TmTrue = inr TyBool.
 Proof. reflexivity. Qed.
@@ -112,30 +119,34 @@ Proof. reflexivity. Qed.
 Example typeof_test2 : type_of (empty_context) TmFalse = inr TyBool.
 Proof. reflexivity. Qed.
 
-Example typeof_test3 : type_of (empty_context)
-                                (TmIf (TmTrue)
-                                      (TmTrue)
-                                      (TmFalse))
-                     = inr TyBool.
+Example typeof_test3 :
+  type_of (empty_context)
+          (TmIf (TmTrue)
+                (TmTrue)
+                (TmFalse))
+  = inr TyBool.
 Proof. reflexivity. Qed.
 
-Example typeof_test4 : type_of (empty_context)
-                               (TmAbs "f" TyBool (TmAbs "f'" TyBool TmTrue))
-                     = inr (TyArrow TyBool (TyArrow TyBool TyBool)).
+Example typeof_test4 :
+  type_of (empty_context)
+          (TmAbs "f" TyBool (TmAbs "f'" TyBool TmTrue))
+  = inr (TyArrow TyBool (TyArrow TyBool TyBool)).
 Proof. reflexivity. Qed.
 
-Example typeof_test5 : type_of (empty_context)
-                               (TmApp (TmAbs "f" TyBool TmTrue) TmFalse)
-                     = inr TyBool.
+Example typeof_test5 :
+  type_of (empty_context)
+          (TmApp (TmAbs "f" TyBool TmTrue) TmFalse)
+  = inr TyBool.
 Proof. reflexivity. Qed.
 
-Example typeof_test6 : type_of (context_mk
-                                [binding_mk "f"
-                                            (BindVar (TyArrow TyBool TyBool))])
-                               (TmIf (TmTrue)
-                                     (TmApp (TmVar "f") TmTrue)
-                                     (TmFalse))%string
-                     = inr TyBool.
+Example typeof_test6 :
+  type_of (context_mk
+            [binding_mk "f"
+              (BindVar (TyArrow TyBool TyBool))])
+          (TmIf (TmTrue)
+                (TmApp (TmVar "f") TmTrue)
+                (TmFalse))%string
+  = inr TyBool.
 Proof. reflexivity. Qed.
 
 Definition is_right {L R} (s : L + R) : Prop :=
@@ -150,41 +161,38 @@ Definition is_left {L R} (s : L + R) : Prop :=
   | inl _ => True
   end.
 
-Lemma is_left_of_right_false {L R} : forall (s: L + R) (r : R), @is_left L R (inr r) -> False.
-Proof.
-  intros; trivial.
-Qed.
-
-Lemma is_right_of_left_false : forall (s: error + type) (l : error), @is_right error type (inl l) -> False.
-Proof.
-  intros; trivial.
-Qed.
-
 Definition unwrap_checked : forall (t : error + type), is_right t -> type.
   refine (fun t =>
     match t with
     | inr t' => fun _ => t'
-    | inl e => fun pf => False_rec _ _
+    | inl e => fun _ => !
     end); trivial.
 Defined.
 
-(* XXX: Keep this proof bad cuz this is automated proof*)
-Theorem abs_type : forall (name : string) (ty : type) (tm : term) (ctx: context)
-                     (pf1 : is_right (type_of ctx (TmAbs name ty tm)))
-                     (pf2 : is_right (type_of (add_binding ctx name (BindVar ty)) tm)),
-                     unwrap_checked (type_of ctx (TmAbs name ty tm)) pf1
-                   = TyArrow ty (unwrap_checked (type_of (add_binding ctx name (BindVar ty)) tm) pf2).
+Theorem tmfalse_and_tmtrue_always_tybool :
+  forall (tm : term) (ctx : context),
+  tm = TmTrue \/ tm = TmFalse
+  -> type_of ctx tm = inr TyBool.
 Proof.
-  intros;
-  induction tm;
-  auto;
-  auto;
-  qauto;
-  sdone;
-  induction ty;
-  sdone;
-  sdone;
-  induction ty;
-  sdone;
-  sdone.
+  intros; destruct H.
+  all: (rewrite H; trivial).
+Qed.
+
+(* XXX: Keep this proof bad cuz this is automated proof*)
+Theorem abs_type :
+  forall (name : string) (ty : type) (tm : term) (ctx: context)
+    (pf1 : is_right (type_of ctx (TmAbs name ty tm)))
+    (pf2 : is_right (type_of (add_binding ctx name (BindVar ty)) tm)),
+  unwrap_checked (type_of ctx (TmAbs name ty tm)) pf1
+  = TyArrow
+      ty
+      (unwrap_checked (type_of (add_binding ctx name (BindVar ty)) tm) pf2).
+Proof.
+  intros; induction tm.
+  - auto.
+  - auto.
+  - qauto.
+  - qsimpl.
+  - qsimpl.
+  - qsimpl.
 Qed.

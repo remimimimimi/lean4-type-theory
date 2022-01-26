@@ -42,16 +42,22 @@ Proof. reflexivity. Qed.
 Example type_eq_test3 : type_eq TyBool (TyArrow TyBool TyBool) = false.
 Proof. reflexivity. Qed.
 
-Example type_eq_test4 : type_eq (TyArrow TyBool (TyArrow TyBool TyBool))
-                                (TyArrow TyBool (TyArrow TyBool TyBool)) = true.
+Example type_eq_test4 :
+  type_eq (TyArrow TyBool (TyArrow TyBool TyBool))
+          (TyArrow TyBool (TyArrow TyBool TyBool))
+  = true.
 Proof. reflexivity. Qed.
 
-Example type_eq_test5 : type_eq (TyForall "α" (TyArrow TyBool TyBool))
-                                (TyArrow TyBool (TyArrow TyBool TyBool)) = false.
+Example type_eq_test5 :
+  type_eq (TyForall "α" (TyArrow TyBool TyBool))
+          (TyArrow TyBool (TyArrow TyBool TyBool))
+  = false.
 Proof. reflexivity. Qed.
 
-Example type_eq_test6 : type_eq (TyForall "α" (TyArrow (TyVar "α") TyBool))
-                                (TyForall "α" (TyArrow (TyVar "α") TyBool)) = true.
+Example type_eq_test6 :
+  type_eq (TyForall "α" (TyArrow (TyVar "α") TyBool))
+          (TyForall "α" (TyArrow (TyVar "α") TyBool))
+  = true.
 Proof. reflexivity. Qed.
 
 Definition type_eq_decidable : forall t1 t2 : type, {t1 = t2} + {t1 <> t2}.
@@ -69,16 +75,17 @@ Fixpoint replace_typevar (t : type) (n : string) (t' : type) : type :=
 
 Compute replace_typevar (TyArrow (TyVar "α") (TyVar "α")) "α" TyBool.
 
-Example replace_typevar_test1 : replace_typevar (TyVar "α") "α" TyNat
-                              = TyNat.
+Example replace_typevar_test1 : replace_typevar (TyVar "α") "α" TyNat = TyNat.
 Proof. reflexivity. Qed.
 
-Example replace_typevar_test2 : replace_typevar (TyArrow (TyVar "α") (TyVar "α")) "α" (TyVar "β")
-                              = TyArrow (TyVar "β") (TyVar "β").
+Example replace_typevar_test2 :
+  replace_typevar (TyArrow (TyVar "α") (TyVar "α")) "α" (TyVar "β")
+  = TyArrow (TyVar "β") (TyVar "β").
 Proof. reflexivity. Qed.
 
-Example replace_typevar_test3 : replace_typevar (TyArrow (TyVar "α") (TyVar "α")) "α" TyBool
-                              = TyArrow TyBool TyBool.
+Example replace_typevar_test3 :
+  replace_typevar (TyArrow (TyVar "α") (TyVar "α")) "α" TyBool
+  = TyArrow TyBool TyBool.
 Proof. reflexivity. Qed.
 
 Inductive term : Set :=
@@ -114,14 +121,18 @@ Record context : Set := context_mk { bindings : list binding }.
 
 Definition empty_context := context_mk [].
 
-Definition add_binding (ctx : context) (name : string) (bind : bind_kind) : context :=
+Definition add_binding (ctx : context) (name : string) (bind : bind_kind) :=
   context_mk (binding_mk name bind :: ctx.(bindings)).
 
 Definition get_binding (ctx : context) (name : string) : error + bind_kind :=
-  match option_map (fun b => b.(kind)) (List.find (fun b => eqb b.(bind_name) name) ctx.(bindings)) with
+  match
+    option_map (fun b => b.(kind))
+               (List.find (fun b => eqb b.(bind_name) name) ctx.(bindings))
+  with
   | Some bk => inr bk
-  | None => inl ("get_binding: Wrong kind of binding for variable `" ++ name ++ "`")%string
-  end.
+  | None =>
+    inl ("get_binding: Wrong kind of binding for variable `" ++ name ++ "`")
+  end%string.
 
 Definition get_type (ctx : context) (name : string) : error + type :=
   match get_binding ctx name with
@@ -137,7 +148,7 @@ Fixpoint type_of (ctx : context) (t : term) : error + type :=
   | TmNot t =>
     match type_of ctx t with
     | inr TyBool => inr TyBool
-    | inr _ => inl ("type_of: Expected term of type boolean")%string
+    | inr _ => inl ("type_of: Expected term of type boolean")
     | inl e => inl e
     end
   | TmAnd t1 t2
@@ -146,11 +157,11 @@ Fixpoint type_of (ctx : context) (t : term) : error + type :=
     | (inr TyBool, inr TyBool) => inr TyBool
     (* TODO: Split in three cases for better error msg's *)
     | (inr TyBool, inr _) =>
-      inl ("type_of: Expected term of type boolean on the right side of operator")%string
+      inl ("type_of: Expected term of type boolean on the right side of operator")
     | (inr _, inr TyBool) =>
-      inl ("type_of: Expected term of type boolean on the left side of operator")%string
+      inl ("type_of: Expected term of type boolean on the left side of operator")
     | (inr _, inr _) =>
-      inl ("type_of: Expected terms of type boolean")%string
+      inl ("type_of: Expected terms of type boolean")
     | (inl e, _)
     | (_, inl e) => inl e
     end
@@ -158,9 +169,9 @@ Fixpoint type_of (ctx : context) (t : term) : error + type :=
     match (type_of ctx t1, type_of ctx t2, type_of ctx t3) with
     | (inr TyBool, inr ty1, inr ty2) =>
       if type_eq ty1 ty2 then inr ty1
-      else inl ("type_of: Arms of conditional have different types")%string
+      else inl ("type_of: Arms of conditional have different types")
     | (inr _, inr _, inr _) =>
-      inl ("type_of: Guard of conditional expression not a boolean")%string
+      inl ("type_of: Guard of conditional expression not a boolean")
     | (inl e, _, _)
     | (_, inl e, _)
     | (_, _, inl e) => inl e
@@ -172,7 +183,7 @@ Fixpoint type_of (ctx : context) (t : term) : error + type :=
     match type_of ctx t with
     | inr TyNat => inr TyNat
     (* TODO: Print received type *)
-    | inr _ => inl ("type_of: Expected term of type nat")%string
+    | inr _ => inl ("type_of: Expected term of type nat")
     | inl e => inl e
     end
 
@@ -186,23 +197,23 @@ Fixpoint type_of (ctx : context) (t : term) : error + type :=
     match type_of ctx p with
     | inr (TyPair ty1 ty2) => inr ty1
     (* TODO: Print received type *)
-    | inr _ => inl ("type_of: Expected term of type pair")%string
+    | inr _ => inl ("type_of: Expected term of type pair")
     | inl e => inl e
     end
   | TmSnd p =>
     match type_of ctx p with
     | inr (TyPair ty1 ty2) => inr ty2
     (* TODO: Print received type *)
-    | inr _ => inl ("type_of: Expected term of type pair")%string
+    | inr _ => inl ("type_of: Expected term of type pair")
     | inl e => inl e
     end
 
   | TmVar name => get_type ctx name
   | TmAbs name tyT1 t2 =>
-    let ctx' := add_binding ctx name (BindVar tyT1)
-    in match type_of ctx' t2 with
+    let ctx' := add_binding ctx name (BindVar tyT1) in
+    match type_of ctx' t2 with
     | inr tyT2 => inr (TyArrow tyT1 tyT2)
-    | _ => inl ("type_of: Cannot find type for term")%string
+    | _ => inl ("type_of: Cannot find type for term")
     end
   | TmApp t1 t2 =>
     match (type_of ctx t1, type_of ctx t2) with
@@ -210,33 +221,34 @@ Fixpoint type_of (ctx : context) (t : term) : error + type :=
       match ty1 with
       | TyArrow ty11 ty12 =>
         if type_eq ty2 ty11 then inr ty12
-        else inl ("type_of: Parameter type mismatch")%string
-      | _ => inl ("type_of: Arrow type expected")%string
+        else inl ("type_of: Parameter type mismatch")
+      | _ => inl ("type_of: Arrow type expected")
       end
-    | _ => inl ("type_of: Cannot find type for term")%string
+    | _ => inl ("type_of: Cannot find type for term")
     end
 
   | TmTyAbs name t =>
-    let ctx' := add_binding ctx name BindTyVar
-    in match type_of ctx' t with
+    let ctx' := add_binding ctx name BindTyVar in
+    match type_of ctx' t with
     | inr ty2 => inr (TyForall name ty2)
-    | _ => inl ("type_of: Cannot find type for term")%string
+    | _ => inl ("type_of: Cannot find type for term")
     end
   (* XXX: Possibly wrong implementation *)
   | TmTyApp t ty =>
     match type_of ctx t with
     | inr (TyForall name ty') =>
       match t with
-      | TmTyAbs name' t' => match type_of (add_binding ctx name (BindVar ty')) t' with
+      | TmTyAbs name' t' =>
+        match type_of (add_binding ctx name (BindVar ty')) t' with
         | inr (t'') => inr (replace_typevar t'' name ty)
         | inl e => inl e
         end
-      | _ => inl ("type_of: Expected universal type")%string
+      | _ => inl ("type_of: Expected universal type")
       end
-    | inr _ => inl ("type_of: Expected universal type")%string
+    | inr _ => inl ("type_of: Expected universal type")
     | inl e => inl e
     end
-  end.
+  end%string.
 
 Example typeof_test1 : type_of (empty_context) TmTrue = inr TyBool.
 Proof. reflexivity. Qed.
@@ -244,44 +256,50 @@ Proof. reflexivity. Qed.
 Example typeof_test2 : type_of (empty_context) TmFalse = inr TyBool.
 Proof. reflexivity. Qed.
 
-Example typeof_test3 : type_of (empty_context)
-                                (TmIf (TmTrue)
-                                      (TmTrue)
-                                      (TmFalse))
-                     = inr TyBool.
+Example typeof_test3 :
+  type_of (empty_context)
+          (TmIf (TmTrue)
+                (TmTrue)
+                (TmFalse))
+  = inr TyBool.
 Proof. reflexivity. Qed.
 
-Example typeof_test4 : type_of (empty_context)
-                               (TmAbs "f" TyBool (TmAbs "f'" TyBool TmTrue))
-                     = inr (TyArrow TyBool (TyArrow TyBool TyBool)).
+Example typeof_test4 :
+  type_of (empty_context)
+          (TmAbs "f" TyBool (TmAbs "f'" TyBool TmTrue))
+  = inr (TyArrow TyBool (TyArrow TyBool TyBool)).
 Proof. reflexivity. Qed.
 
-Example typeof_test5 : type_of (empty_context)
-                               (TmApp (TmAbs "f" TyBool TmTrue) TmFalse)
-                     = inr TyBool.
+Example typeof_test5 :
+  type_of (empty_context)
+          (TmApp (TmAbs "f" TyBool TmTrue) TmFalse)
+  = inr TyBool.
 Proof. reflexivity. Qed.
 
-Example typeof_test6 : type_of (context_mk
-                                [binding_mk "f"
-                                            (BindVar (TyArrow TyBool TyBool))])
-                               (TmIf (TmTrue)
-                                     (TmApp (TmVar "f") TmTrue)
-                                     (TmFalse))
-                     = inr TyBool.
+Example typeof_test6 :
+  type_of (context_mk
+           [binding_mk "f"
+            (BindVar (TyArrow TyBool TyBool))])
+            (TmIf (TmTrue)
+                  (TmApp (TmVar "f") TmTrue)
+                   (TmFalse))
+  = inr TyBool.
 Proof. reflexivity. Qed.
 
 
-Example typeof_test7 : type_of (empty_context)
-                               (TmTyAbs "α"
-                                 (TmAbs "a" (TyVar "α")
-                                        (TmVar "a")))%string
-                     = inr (TyForall "α" (TyArrow (TyVar "α") (TyVar "α"))).
+Example typeof_test7 :
+  type_of (empty_context)
+          (TmTyAbs "α"
+           (TmAbs "a" (TyVar "α")
+            (TmVar "a")))%string
+  = inr (TyForall "α" (TyArrow (TyVar "α") (TyVar "α"))).
 Proof. reflexivity. Qed.
 
-Example typeof_test8 : type_of (empty_context)
-                               (TmTyApp
-                                (TmTyAbs "α"
-                                  (TmAbs "a" (TyVar "α") (TmVar "a")))
-                                  TyBool)%string
-                     = inr (TyArrow TyBool TyBool).
+Example typeof_test8 :
+  type_of (empty_context)
+          (TmTyApp
+            (TmTyAbs "α"
+              (TmAbs "a" (TyVar "α") (TmVar "a")))
+              TyBool)
+  = inr (TyArrow TyBool TyBool).
 Proof. reflexivity. Qed.
