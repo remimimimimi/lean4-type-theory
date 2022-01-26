@@ -1,6 +1,8 @@
 From Coq Require Import List.
 From Coq Require Import Program.Program.
 
+From Hammer Require Import Hammer Tactics.
+
 Require Import String.
 Import ListNotations.
 
@@ -20,7 +22,7 @@ Inductive type : Set :=
 Fixpoint type_eq (a:type) (b:type) : bool :=
   match (a, b) with
   | (TyBool, TyBool) => true
-  | (TyArrow t11 t12, TyArrow t21 t22) => (type_eq t11 t21) && (type_eq t12 t22)
+  | (TyArrow t11 t12, TyArrow t21 t22) => ((type_eq t11 t21) && (type_eq t12 t22))%bool
   | (_, _) => false
   end.
 
@@ -135,3 +137,54 @@ Example typeof_test6 : type_of (context_mk
                                      (TmFalse))%string
                      = inr TyBool.
 Proof. reflexivity. Qed.
+
+Definition is_right {L R} (s : L + R) : Prop :=
+  match s with
+  | inr _ => True
+  | inl _ => False
+  end.
+
+Definition is_left {L R} (s : L + R) : Prop :=
+  match s with
+  | inr _ => False
+  | inl _ => True
+  end.
+
+Lemma is_left_of_right_false {L R} : forall (s: L + R) (r : R), @is_left L R (inr r) -> False.
+Proof.
+  intros; trivial.
+Qed.
+
+Lemma is_right_of_left_false : forall (s: error + type) (l : error), @is_right error type (inl l) -> False.
+Proof.
+  intros; trivial.
+Qed.
+
+Definition unwrap_checked : forall (t : error + type), is_right t -> type.
+  refine (fun t =>
+    match t with
+    | inr t' => fun _ => t'
+    | inl e => fun pf => False_rec _ _
+    end); trivial.
+Defined.
+
+(* XXX: Keep this proof bad cuz this is automated proof*)
+Theorem abs_type : forall (name : string) (ty : type) (tm : term) (ctx: context)
+                     (pf1 : is_right (type_of ctx (TmAbs name ty tm)))
+                     (pf2 : is_right (type_of (add_binding ctx name (BindVar ty)) tm)),
+                     unwrap_checked (type_of ctx (TmAbs name ty tm)) pf1
+                   = TyArrow ty (unwrap_checked (type_of (add_binding ctx name (BindVar ty)) tm) pf2).
+Proof.
+  intros;
+  induction tm;
+  auto;
+  auto;
+  qauto;
+  sdone;
+  induction ty;
+  sdone;
+  sdone;
+  induction ty;
+  sdone;
+  sdone.
+Qed.
