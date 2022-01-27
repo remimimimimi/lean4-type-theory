@@ -46,8 +46,8 @@ Proof. done. Qed.
 Inductive term : Set :=
   | TmTrue : term
   | TmFalse : term
-  | TmIf : term -> term -> term -> term
   | TmVar : string -> term
+  | TmIf : term -> term -> term -> term
   | TmAbs : string -> type -> term -> term
   | TmApp : term -> term -> term.
 
@@ -83,6 +83,7 @@ Fixpoint type_of (ctx : context) (t : term) : error + type :=
   match t with
   | TmTrue => inr TyBool
   | TmFalse => inr TyBool
+  | TmVar name => get_type ctx name
   | TmIf t1 t2 t3 =>
     match (type_of ctx t1, type_of ctx t2, type_of ctx t3) with
     | (inr ty1, inr ty2, inr ty3) =>
@@ -94,7 +95,6 @@ Fixpoint type_of (ctx : context) (t : term) : error + type :=
     | (_, inl e, _)
     | (_, _, inl e) => inl e
     end
-  | TmVar name => get_type ctx name
   | TmAbs name tyT1 t2 =>
     let ctx' := add_binding ctx name (BindVar tyT1) in
     match type_of ctx' t2 with
@@ -187,5 +187,5 @@ Theorem abs_type :
       ty
       (unwrap_checked (type_of (add_binding ctx name (BindVar ty)) tm) pf2).
 Proof.
-  move => name ty [] ctx pf1 pt2; by [auto | qauto | qsimpl].
+  move => name [] tm ctx pf1 pt2; by [qauto].
 Qed.
