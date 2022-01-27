@@ -1,5 +1,6 @@
 From Coq Require Import List.
 From Coq Require Import Program.Program.
+From Coq Require Import ssreflect.
 
 From Hammer Require Import Hammer Tactics.
 
@@ -28,19 +29,19 @@ Fixpoint type_eq (a:type) (b:type) : bool :=
   end.
 
 Example type_eq_test1 : type_eq TyBool TyBool = true.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example type_eq_test2 : type_eq TyBool (TyArrow TyBool TyBool) = false.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example type_eq_test3 : type_eq TyBool (TyArrow TyBool TyBool) = false.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example type_eq_test4 :
   type_eq (TyArrow TyBool (TyArrow TyBool TyBool))
           (TyArrow TyBool (TyArrow TyBool TyBool))
   = true.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Inductive term : Set :=
   | TmTrue : term
@@ -114,10 +115,10 @@ Fixpoint type_of (ctx : context) (t : term) : error + type :=
   end%string.
 
 Example typeof_test1 : type_of (empty_context) TmTrue = inr TyBool.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example typeof_test2 : type_of (empty_context) TmFalse = inr TyBool.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example typeof_test3 :
   type_of (empty_context)
@@ -125,19 +126,19 @@ Example typeof_test3 :
                 (TmTrue)
                 (TmFalse))
   = inr TyBool.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example typeof_test4 :
   type_of (empty_context)
           (TmAbs "f" TyBool (TmAbs "f'" TyBool TmTrue))
   = inr (TyArrow TyBool (TyArrow TyBool TyBool)).
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example typeof_test5 :
   type_of (empty_context)
           (TmApp (TmAbs "f" TyBool TmTrue) TmFalse)
   = inr TyBool.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example typeof_test6 :
   type_of (context_mk
@@ -147,7 +148,7 @@ Example typeof_test6 :
                 (TmApp (TmVar "f") TmTrue)
                 (TmFalse))%string
   = inr TyBool.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Definition is_right {L R} (s : L + R) : Prop :=
   match s with
@@ -174,11 +175,9 @@ Theorem tmfalse_and_tmtrue_always_tybool :
   tm = TmTrue \/ tm = TmFalse
   -> type_of ctx tm = inr TyBool.
 Proof.
-  intros; destruct H.
-  all: (rewrite H; trivial).
+  move => tm ctx []; by move => ->.
 Qed.
 
-(* XXX: Keep this proof bad cuz this is automated proof*)
 Theorem abs_type :
   forall (name : string) (ty : type) (tm : term) (ctx: context)
     (pf1 : is_right (type_of ctx (TmAbs name ty tm)))
@@ -188,11 +187,5 @@ Theorem abs_type :
       ty
       (unwrap_checked (type_of (add_binding ctx name (BindVar ty)) tm) pf2).
 Proof.
-  intros; induction tm.
-  - auto.
-  - auto.
-  - qauto.
-  - qsimpl.
-  - qsimpl.
-  - qsimpl.
+  move => name ty [] ctx pf1 pt2; by [auto | qauto | qsimpl].
 Qed.
