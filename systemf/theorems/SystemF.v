@@ -1,8 +1,14 @@
-From Coq Require Import List.
+From Coq Require Import List Bool.
 From Coq Require Import Program.Program.
+From Coq Require Import ssreflect.
+
+From Hammer Require Import Hammer Tactics.
 
 Require Import String.
 Import ListNotations.
+
+Set Implicit Arguments.
+Set Hammer ATPLimit 5.
 
 Definition error := string.
 
@@ -20,7 +26,6 @@ Inductive type : Set :=
   | TyArrow : type -> type -> type
   | TyForall : string -> type -> type
   | TyVar : string -> type.
-  (* | TyExists : string -> type -> type. *)
 
 Fixpoint type_eq (a : type) (b : type) : bool :=
   match (a, b) with
@@ -34,35 +39,35 @@ Fixpoint type_eq (a : type) (b : type) : bool :=
   end.
 
 Example type_eq_test1 : type_eq TyBool TyBool = true.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example type_eq_test2 : type_eq TyBool (TyArrow TyBool TyBool) = false.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example type_eq_test3 : type_eq TyBool (TyArrow TyBool TyBool) = false.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example type_eq_test4 :
   type_eq (TyArrow TyBool (TyArrow TyBool TyBool))
           (TyArrow TyBool (TyArrow TyBool TyBool))
   = true.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example type_eq_test5 :
   type_eq (TyForall "α" (TyArrow TyBool TyBool))
           (TyArrow TyBool (TyArrow TyBool TyBool))
   = false.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example type_eq_test6 :
   type_eq (TyForall "α" (TyArrow (TyVar "α") TyBool))
           (TyForall "α" (TyArrow (TyVar "α") TyBool))
   = true.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Definition type_eq_decidable : forall t1 t2 : type, {t1 = t2} + {t1 <> t2}.
 Proof.
-  decide equality. all: apply string_dec.
+  decide equality; by apply string_dec.
 Defined.
 
 Fixpoint replace_typevar (t : type) (n : string) (t' : type) : type :=
@@ -70,23 +75,52 @@ Fixpoint replace_typevar (t : type) (n : string) (t' : type) : type :=
   | TyVar name => if eqb name n then t' else TyVar name
   | TyPair t1 t2 => TyPair (replace_typevar t1 n t') (replace_typevar t2 n t')
   | TyArrow t1 t2 => TyArrow (replace_typevar t1 n t') (replace_typevar t2 n t')
-  | t'' => t''
+  | TyForall name t1 =>
+    if eqb name n then TyForall name t1
+    else TyForall name (replace_typevar t1 n t')
+  | TyBool => TyBool
+  | TyNat => TyNat
   end.
 
 Compute replace_typevar (TyArrow (TyVar "α") (TyVar "α")) "α" TyBool.
 
 Example replace_typevar_test1 : replace_typevar (TyVar "α") "α" TyNat = TyNat.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example replace_typevar_test2 :
   replace_typevar (TyArrow (TyVar "α") (TyVar "α")) "α" (TyVar "β")
   = TyArrow (TyVar "β") (TyVar "β").
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example replace_typevar_test3 :
   replace_typevar (TyArrow (TyVar "α") (TyVar "α")) "α" TyBool
   = TyArrow TyBool TyBool.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
+
+Example replace_typevar_test4 :
+  replace_typevar (TyForall "α" (TyVar "α")) "α" TyBool
+  = (TyForall "α" (TyVar "α")).
+Proof. done. Qed.
+
+Example replace_typevar_test5 :
+  replace_typevar (TyForall "β" (TyVar "α")) "α" TyBool
+  = (TyForall "β" TyBool).
+Proof. done. Qed.
+
+Fixpoint type_contains (ty : type) (name : string) :=
+  match ty with
+  | TyPair ty1 ty2
+  | TyArrow ty1 ty2 => (type_contains ty1 name) \/ (type_contains ty2 name)
+  | TyVar name' => if eqb name name' then True else False
+  | TyForall name' ty' => if eqb name name then False else type_contains ty' name
+  | TyBool
+  | TyNat => False
+  end.
+
+(* Theorem replace_typevar_soundness : *)
+(*   forall (ty0 : type) (name : string) (ty1 : type), *)
+(*     (type_contains ty0 name) *)
+(*   -> ~(type_contains (replace_typevar ty0 name ty1) name). *)
 
 Inductive term : Set :=
   | TmTrue : term
@@ -141,19 +175,19 @@ Definition get_type (ctx : context) (name : string) : error + type :=
   | inl e => inl e
   end.
 
-Fixpoint type_of (ctx : context) (t : term) : error + type :=
-  match t with
+Fixpoint type_of (ctx : context) (tm : term) : error + type :=
+  match tm with
   | TmTrue
   | TmFalse => inr TyBool
-  | TmNot t =>
-    match type_of ctx t with
+  | TmNot tm =>
+    match type_of ctx tm with
     | inr TyBool => inr TyBool
     | inr _ => inl ("type_of: Expected term of type boolean")
     | inl e => inl e
     end
-  | TmAnd t1 t2
-  | TmOr t1 t2 =>
-    match (type_of ctx t1, type_of ctx t2) with
+  | TmAnd tm1 tm2
+  | TmOr tm1 tm2 =>
+    match (type_of ctx tm1, type_of ctx tm2) with
     | (inr TyBool, inr TyBool) => inr TyBool
     (* TODO: Split in three cases for better error msg's *)
     | (inr TyBool, inr _) =>
@@ -165,8 +199,8 @@ Fixpoint type_of (ctx : context) (t : term) : error + type :=
     | (inl e, _)
     | (_, inl e) => inl e
     end
-  | TmIf t1 t2 t3 =>
-    match (type_of ctx t1, type_of ctx t2, type_of ctx t3) with
+  | TmIf tm1 tm2 tm3 =>
+    match (type_of ctx tm1, type_of ctx tm2, type_of ctx tm3) with
     | (inr TyBool, inr ty1, inr ty2) =>
       if type_eq ty1 ty2 then inr ty1
       else inl ("type_of: Arms of conditional have different types")
@@ -178,30 +212,30 @@ Fixpoint type_of (ctx : context) (t : term) : error + type :=
     end
 
   | TmZero => inr TyNat
-  | TmSucc t
-  | TmPred t =>
-    match type_of ctx t with
+  | TmSucc tm
+  | TmPred tm =>
+    match type_of ctx tm with
     | inr TyNat => inr TyNat
     (* TODO: Print received type *)
     | inr _ => inl ("type_of: Expected term of type nat")
     | inl e => inl e
     end
 
-  | TmMkPair t1 t2 =>
-    match (type_of ctx t1, type_of ctx t2) with
+  | TmMkPair tm1 tm2 =>
+    match (type_of ctx tm1, type_of ctx tm2) with
     | (inr ty1, inr ty2) => inr (TyPair ty1 ty2)
     | (inl e, _)
     | (_, inl e) => inl e
     end
-  | TmFst p =>
-    match type_of ctx p with
+  | TmFst tm =>
+    match type_of ctx tm with
     | inr (TyPair ty1 ty2) => inr ty1
     (* TODO: Print received type *)
     | inr _ => inl ("type_of: Expected term of type pair")
     | inl e => inl e
     end
-  | TmSnd p =>
-    match type_of ctx p with
+  | TmSnd tm =>
+    match type_of ctx tm with
     | inr (TyPair ty1 ty2) => inr ty2
     (* TODO: Print received type *)
     | inr _ => inl ("type_of: Expected term of type pair")
@@ -209,14 +243,14 @@ Fixpoint type_of (ctx : context) (t : term) : error + type :=
     end
 
   | TmVar name => get_type ctx name
-  | TmAbs name tyT1 t2 =>
-    let ctx' := add_binding ctx name (BindVar tyT1) in
-    match type_of ctx' t2 with
-    | inr tyT2 => inr (TyArrow tyT1 tyT2)
+  | TmAbs name ty1 tm2 =>
+    let ctx' := add_binding ctx name (BindVar ty1) in
+    match type_of ctx' tm2 with
+    | inr ty2 => inr (TyArrow ty1 ty2)
     | _ => inl ("type_of: Cannot find type for term")
     end
-  | TmApp t1 t2 =>
-    match (type_of ctx t1, type_of ctx t2) with
+  | TmApp tm1 tm2 =>
+    match (type_of ctx tm1, type_of ctx tm2) with
     | (inr ty1, inr ty2) =>
       match ty1 with
       | TyArrow ty11 ty12 =>
@@ -227,20 +261,20 @@ Fixpoint type_of (ctx : context) (t : term) : error + type :=
     | _ => inl ("type_of: Cannot find type for term")
     end
 
-  | TmTyAbs name t =>
+  | TmTyAbs name tm =>
     let ctx' := add_binding ctx name BindTyVar in
-    match type_of ctx' t with
-    | inr ty2 => inr (TyForall name ty2)
+    match type_of ctx' tm with
+    | inr ty1 => inr (TyForall name ty1)
     | _ => inl ("type_of: Cannot find type for term")
     end
   (* XXX: Possibly wrong implementation *)
-  | TmTyApp t ty =>
-    match type_of ctx t with
+  | TmTyApp tm ty =>
+    match type_of ctx tm with
     | inr (TyForall name ty') =>
-      match t with
-      | TmTyAbs name' t' =>
-        match type_of (add_binding ctx name (BindVar ty')) t' with
-        | inr (t'') => inr (replace_typevar t'' name ty)
+      match tm with
+      | TmTyAbs name' tm' =>
+        match type_of (add_binding ctx name (BindVar ty')) tm' with
+        | inr (ty'') => inr (replace_typevar ty'' name ty)
         | inl e => inl e
         end
       | _ => inl ("type_of: Expected universal type")
@@ -251,10 +285,10 @@ Fixpoint type_of (ctx : context) (t : term) : error + type :=
   end%string.
 
 Example typeof_test1 : type_of (empty_context) TmTrue = inr TyBool.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example typeof_test2 : type_of (empty_context) TmFalse = inr TyBool.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example typeof_test3 :
   type_of (empty_context)
@@ -262,19 +296,19 @@ Example typeof_test3 :
                 (TmTrue)
                 (TmFalse))
   = inr TyBool.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example typeof_test4 :
   type_of (empty_context)
           (TmAbs "f" TyBool (TmAbs "f'" TyBool TmTrue))
   = inr (TyArrow TyBool (TyArrow TyBool TyBool)).
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example typeof_test5 :
   type_of (empty_context)
           (TmApp (TmAbs "f" TyBool TmTrue) TmFalse)
   = inr TyBool.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example typeof_test6 :
   type_of (context_mk
@@ -284,7 +318,7 @@ Example typeof_test6 :
                   (TmApp (TmVar "f") TmTrue)
                    (TmFalse))
   = inr TyBool.
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 
 Example typeof_test7 :
@@ -293,7 +327,7 @@ Example typeof_test7 :
            (TmAbs "a" (TyVar "α")
             (TmVar "a")))%string
   = inr (TyForall "α" (TyArrow (TyVar "α") (TyVar "α"))).
-Proof. reflexivity. Qed.
+Proof. done. Qed.
 
 Example typeof_test8 :
   type_of (empty_context)
@@ -302,4 +336,38 @@ Example typeof_test8 :
               (TmAbs "a" (TyVar "α") (TmVar "a")))
               TyBool)
   = inr (TyArrow TyBool TyBool).
-Proof. reflexivity. Qed.
+Proof. done. Qed.
+
+Definition is_right {L R} (s : L + R) : Prop :=
+  match s with
+  | inr _ => True
+  | inl _ => False
+  end.
+
+Definition unwrap_checked : forall (ty : error + type), is_right ty -> type.
+  refine (fun ty =>
+    match ty with
+    | inr ty' => fun _ => ty'
+    | inl e => fun _ => !
+    end); trivial.
+Defined.
+
+Theorem tmfalse_and_tmtrue_always_tybool :
+  forall (tm : term) (ctx : context),
+  tm = TmTrue \/ tm = TmFalse
+  -> type_of ctx tm = inr TyBool.
+Proof.
+  move => tm ctx []; by move => ->.
+Qed.
+
+Theorem abs_type :
+  forall (name : string) (ty : type) (tm : term) (ctx : context)
+    (pf1 : is_right (type_of ctx (TmAbs name ty tm)))
+    (pf2 : is_right (type_of (add_binding ctx name (BindVar ty)) tm)),
+  unwrap_checked (type_of ctx (TmAbs name ty tm)) pf1
+  = TyArrow
+      ty
+      (unwrap_checked (type_of (add_binding ctx name (BindVar ty)) tm) pf2).
+Proof.
+  move => name [] tm ctx pf1 pf2; by [qauto].
+Qed.
