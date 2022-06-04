@@ -1,19 +1,7 @@
-## lambda-calculus-typecheckers
-Implementation of typecheckers (not only) for different lambda calculus type systems with proof of correctness.
+## Lean4 type theory
 
-### Project structure
-
-- Simple typed lambda calculus (stlc)
-- Polymorphic lambda calculus (systemf) 
+Implementation of different type theories in Lean4.
 
 ## Build and run
 
-The only prerequisite is `opam`:
-
-``` sh
-opam init # for first usage
-cd NAME_OF_TYPE_SYSTEM_PROJECT 
-opam install . --deps-only
-dune build
-```
-
+Install `elan`, nightly version of Lean4. Choose directory and run `lake build`.
